@@ -61,8 +61,73 @@ update msg model =
             Debug.log "Input updated the model "
                 { model | name = name }
 
+        Save ->
+            if (String.isEmpty model.name) then
+                model
+            else
+                save model
+
+        Cancel ->
+            { model | name = "", playerId = Nothing }
+
         _ ->
             model
+
+
+save : Model -> Model
+save model =
+    case model.playerId of
+        Just id ->
+            editPlayer model id
+
+        Nothing ->
+            addPlayer model
+
+
+addPlayer : Model -> Model
+addPlayer model =
+    let
+        newPlayer =
+            Player (List.length model.players) model.name 0
+
+        newPlayers =
+            newPlayer :: model.players
+    in
+        { model
+            | players = newPlayers
+            , name = " "
+        }
+
+
+editPlayer : Model -> Int -> Model
+editPlayer model id =
+    let
+        newPlayers =
+            List.map
+                (\player ->
+                    if player.id == id then
+                        { player | name = model.name }
+                    else
+                        player
+                )
+                model.players
+
+        newPlays =
+            List.map
+                (\play ->
+                    if play.playerId == id then
+                        { play | name = model.name }
+                    else
+                        play
+                )
+                model.plays
+    in
+        { model
+            | players = newPlayers
+            , plays = newPlays
+            , name = ""
+            , playerId = Nothing
+        }
 
 
 
