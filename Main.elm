@@ -68,10 +68,66 @@ update msg model =
                 save model
 
         Cancel ->
-            { model | name = "", playerId = Nothing }
+            { model
+                | name = ""
+                , playerId = Nothing
+            }
 
-        _ ->
-            model
+        Score player points ->
+            score model player points
+
+        Edit player ->
+            { model
+                | name = player.name
+                , playerId = Just player.id
+            }
+
+        DeletePlay play ->
+            deletePlay model play
+
+
+deletePlay : Model -> Play -> Model
+deletePlay model deletedPlay =
+    let
+        newPlays =
+            List.filter (\play -> play.id /= deletedPlay.id) model.plays
+
+        newPlayers =
+            List.map
+                (\player ->
+                    if player.id == deletedPlay.playerId then
+                        { player | points = player.points - deletedPlay.points }
+                    else
+                        player
+                )
+                model.players
+    in
+        { model
+            | plays = newPlays
+            , players = newPlayers
+        }
+
+
+score : Model -> Player -> Int -> Model
+score model scoringPlayer score =
+    let
+        newPlayers =
+            List.map
+                (\player ->
+                    if player.id == scoringPlayer.id then
+                        { player | points = player.points + score }
+                    else
+                        player
+                )
+                model.players
+
+        play =
+            Play (List.length model.plays) scoringPlayer.id scoringPlayer.name score
+    in
+        { model
+            | players = newPlayers
+            , plays = play :: model.plays
+        }
 
 
 save : Model -> Model
@@ -138,7 +194,9 @@ view : Model -> Html Msg
 view model =
     div [ class "scoreboard" ]
         [ h1 [] [ text "Score Keeper" ]
+        , playerSection model
         , playerForm model
+        , playSection model
         , p [] [ text <| toString model ]
         ]
 
@@ -158,8 +216,105 @@ playerForm model =
         ]
 
 
+playerSection : Model -> Html Msg
+playerSection model =
+    div []
+        [ playerListHeader
+        , playerList model
+        , pointTotal model
+        ]
 
---uncomment if needed -- import Html.App as App
+
+playerListHeader : Html Msg
+playerListHeader =
+    header []
+        [ div [] [ text "Name" ]
+        , div [] [ text "Points" ]
+        ]
+
+
+playerList : Model -> Html Msg
+playerList model =
+    model.players
+        |> List.sortBy .name
+        |> List.map playerToHtml
+        |> ul []
+
+
+playerToHtml : Player -> Html Msg
+playerToHtml player =
+    li []
+        [ i
+            [ class "edit"
+            , onClick (Edit player)
+            ]
+            []
+        , div []
+            [ text player.name ]
+        , button
+            [ type_ "button"
+            , onClick (Score player 2)
+            ]
+            [ text "2 pts" ]
+        , button
+            [ type_ "button"
+            , onClick (Score player 3)
+            ]
+            [ text "3 pts" ]
+        , div []
+            [ text <| toString player.points ]
+        ]
+
+
+pointTotal : Model -> Html Msg
+pointTotal model =
+    let
+        total =
+            List.map .points model.players
+                |> List.sum
+    in
+        footer []
+            [ div [] [ text "Total:" ]
+            , div [] [ text <| toString total ]
+            ]
+
+
+playSection : Model -> Html Msg
+playSection model =
+    div []
+        [ playListHeader
+        , playList model
+        ]
+
+
+playListHeader : Html Msg
+playListHeader =
+    header []
+        [ div [] [ text "Plays" ]
+        , div [] [ text "Points" ]
+        ]
+
+
+playList : Model -> Html Msg
+playList model =
+    model.plays
+        |> List.map playToHtml
+        |> ul []
+
+
+playToHtml : Play -> Html Msg
+playToHtml play =
+    li []
+        [ i
+            [ class "remove"
+            , onClick (DeletePlay play)
+            ]
+            []
+        , div []
+            [ text play.name ]
+        , div []
+            [ text <| toString play.points ]
+        ]
 
 
 main : Program Never Model Msg
