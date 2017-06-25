@@ -197,8 +197,30 @@ view model =
         , playerSection model
         , playerForm model
         , playSection model
-        , p [] [ text <| toString model ]
         ]
+
+
+editPlayerClass : Maybe Int -> Player -> String
+editPlayerClass editPlayerId player =
+    case editPlayerId of
+        Just id ->
+            if player.id == id then
+                "edit"
+            else
+                ""
+
+        Nothing ->
+            ""
+
+
+editInputClass : Maybe Int -> String
+editInputClass editPlayerId =
+    case editPlayerId of
+        Just id ->
+            "edit"
+
+        Nothing ->
+            ""
 
 
 playerForm : Model -> Html Msg
@@ -209,6 +231,7 @@ playerForm model =
             , placeholder "Add/Edit player.."
             , onInput Input
             , value model.name
+            , class <| editInputClass model.playerId
             ]
             []
         , button [ type_ "submit" ] [ text "Save" ]
@@ -237,19 +260,21 @@ playerList : Model -> Html Msg
 playerList model =
     model.players
         |> List.sortBy .name
-        |> List.map playerToHtml
+        |> List.map (playerToHtml model)
         |> ul []
 
 
-playerToHtml : Player -> Html Msg
-playerToHtml player =
+playerToHtml : Model -> Player -> Html Msg
+playerToHtml model player =
     li []
         [ i
             [ class "edit"
             , onClick (Edit player)
             ]
             []
-        , div []
+        , div
+            [ class <| editPlayerClass model.playerId player
+            ]
             [ text player.name ]
         , button
             [ type_ "button"
